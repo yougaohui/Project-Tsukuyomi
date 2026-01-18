@@ -1,11 +1,12 @@
 """
-CogVideoX-3 视频生成客户端
+CogVideoX-3 视频生成客户端 - 使用智谱AI官方SDK
 """
 import os
 import time
+import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, List
-import requests
+from zhipuai import ZhipuAI
 
 from src.config.settings import (
     COGVIDEO_API_KEY,
@@ -25,7 +26,7 @@ logger = get_logger(__name__)
 
 
 class CogVideoClient:
-    """CogVideoX-3 API 客户端"""
+    """CogVideoX-3 API 客户端 - 使用官方SDK"""
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or COGVIDEO_API_KEY
@@ -33,17 +34,14 @@ class CogVideoClient:
         if not self.api_key:
             raise ValueError("COGVIDEO_API_KEY is required")
 
-        self.base_url = "https://api.z.ai/v1/videos"
-        self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
+        # 初始化智谱AI客户端
+        self.client = ZhipuAI(api_key=self.api_key)
+        logger.info("Initialized ZhipuAI client successfully")
 
     def generate_video(
         self,
         prompt: str,
         image_url: Optional[str] = None,
-        image_urls: Optional[List[str]] = None,
         quality: str = COGVIDEO_DEFAULT_QUALITY,
         size: str = COGVIDEO_DEFAULT_SIZE,
         fps: int = COGVIDEO_DEFAULT_FPS,
@@ -54,8 +52,7 @@ class CogVideoClient:
 
         Args:
             prompt: 文本提示词
-            image_url: 单个图片URL（图生视频）
-            image_urls: 图片URL列表（首尾帧生成）
+            image_url: 图片URL（图生视频）
             quality: 质量模式 (quality/speed)
             size: 视频分辨率 (1920x1080, 3840x2160)
             fps: 帧率 (30/60)
@@ -64,107 +61,88 @@ class CogVideoClient:
         Returns:
             生成任务的响应数据
         """
-        payload = {
-            "model": COGVIDEO_MODEL,
-            "prompt": prompt,
-            "quality": quality,
-            "size": size,
-            "fps": fps,
-            "with_audio": with_audio
-        }
-
-        if image_url:
-            payload["image_url"] = image_url
-
-        if image_urls:
-            payload["image_url"] = image_urls
-
         logger.info(f"Starting video generation with prompt: {prompt[:100]}...")
 
-        for attempt in range(COGVIDEO_MAX_RETRIES):
-            try:
-                response = requests.post(
-                    self.base_url,
-                    json=payload,
-                    headers=self.headers,
-                    timeout=COGVIDEO_GENERATION_TIMEOUT
-                )
-                response.raise_for_status()
+        try:
+            # 使用 SDK 提交视频生成任务
+            response = self.client.videos.generations(
+                model=COGVIDEO_MODEL,
+                prompt=prompt,
+                image_url=image_url,
+                quality=quality,
+                size=size,
+                fps=fps,
+                with_audio=with_audio
+            )
 
-                data = response.json()
-                logger.info(f"Video generation started, task ID: {data.get('id')}")
-                return data
+            logger.info(f"Video generation started, task ID: {response.id}")
 
-            except requests.exceptions.Timeout:
-                logger.warning(f"Timeout on attempt {attempt + 1}/{COGVIDEO_MAX_RETRIES}")
-                if attempt < COGVIDEO_MAX_RETRIES - 1:
-                    time.sleep(5)
-                else:
-                    raise
+            return {
+                "id": response.id,
+                "status": "processing"
+            }
 
-            except requests.exceptions.RequestException as e:
-                logger.error(f"Request failed on attempt {attempt + 1}: {str(e)}")
-                if attempt < COGVIDEO_MAX_RETRIES - 1:
-                    time.sleep(5)
-                else:
-                    raise RuntimeError(f"Failed to generate video after {COGVIDEO_MAX_RETRIES} attempts: {str(e)}")
+        except Exception as e:
+            logger.error(f"Failed to start video generation: {str(e)}")
+            raise RuntimeError(f"Failed to generate video: {str(e)}")
 
-    def get_video_result(self, task_id: str) -> Dict[str, Any]:
+    def get_video_result(self, task_id: str, max_wait: int = 300) -> Dict[str, Any]:
         """
-        获取视频生成结果
+        获取视频生成结果（轮询）
 
         Args:
             task_id: 生成任务ID
+            max_wait: 最大等待时间（秒）
 
         Returns:
             生成结果数据
         """
-        url = f"{self.base_url}/{task_id}"
-
         logger.info(f"Checking video result for task {task_id}")
 
-        for attempt in range(COGVIDEO_MAX_RETRIES):
+        start_time = time.time()
+        poll_interval = 5  # 每5秒检查一次
+
+        while time.time() - start_time < max_wait:
             try:
-                response = requests.get(
-                    url,
-                    headers=self.headers,
-                    timeout=COGVIDEO_RETRIEVE_TIMEOUT
-                )
-                response.raise_for_status()
+                result = self.client.videos.retrieve_videos_result(id=task_id)
 
-                data = response.json()
-                status = data.get("status", "unknown")
-
+                status = result.task_status
                 logger.info(f"Video generation status: {status}")
 
-                if status == "succeeded":
+                if status == "SUCCESS":
                     logger.info(f"Video generation completed for task {task_id}")
-                    return data
-                elif status == "failed":
-                    error_msg = data.get("error", "Unknown error")
+
+                    # 获取视频URL
+                    video_url = result.video_result[0].url
+                    cover_url = result.video_result[0].cover_image_url
+
+                    return {
+                        "status": "succeeded",
+                        "output": {
+                            "video_url": video_url,
+                            "cover_image_url": cover_url
+                        }
+                    }
+
+                elif status == "FAIL":
+                    error_msg = str(result)
                     logger.error(f"Video generation failed: {error_msg}")
                     raise RuntimeError(f"Video generation failed: {error_msg}")
-                elif status == "processing":
+
+                elif status == "PROCESSING":
                     logger.info("Video is still processing, waiting...")
-                    time.sleep(10)
-                else:
-                    logger.warning(f"Unknown status: {status}")
-                    time.sleep(10)
+                    time.sleep(poll_interval)
 
-            except requests.exceptions.RequestException as e:
-                logger.error(f"Failed to check result on attempt {attempt + 1}: {str(e)}")
-                if attempt < COGVIDEO_MAX_RETRIES - 1:
-                    time.sleep(5)
-                else:
-                    raise
+            except Exception as e:
+                logger.error(f"Error checking result: {str(e)}")
+                time.sleep(poll_interval)
 
-        raise TimeoutError("Video generation timed out")
+        raise TimeoutError(f"Video generation timed out after {max_wait} seconds")
 
     def generate_video_and_download(
         self,
         prompt: str,
         image_url: Optional[str] = None,
-        image_urls: Optional[List[str]] = None,
         quality: str = COGVIDEO_DEFAULT_QUALITY,
         size: str = COGVIDEO_DEFAULT_SIZE,
         fps: int = COGVIDEO_DEFAULT_FPS,
@@ -177,8 +155,7 @@ class CogVideoClient:
 
         Args:
             prompt: 文本提示词
-            image_url: 单个图片URL
-            image_urls: 图片URL列表（首尾帧）
+            image_url: 图片URL
             quality: 质量模式
             size: 视频分辨率
             fps: 帧率
@@ -202,10 +179,10 @@ class CogVideoClient:
 
         logger.info(f"Generating video to {output_path}")
 
+        # 提交生成任务
         task = self.generate_video(
             prompt=prompt,
             image_url=image_url,
-            image_urls=image_urls,
             quality=quality,
             size=size,
             fps=fps,
@@ -216,14 +193,17 @@ class CogVideoClient:
         if not task_id:
             raise ValueError("No task ID in response")
 
+        # 轮询等待生成完成
         result = self.get_video_result(task_id)
 
         video_url = result.get("output", {}).get("video_url")
         if not video_url:
             raise ValueError("No video URL in response")
 
+        # 下载视频
         logger.info(f"Downloading video from {video_url}")
 
+        import requests
         response = requests.get(video_url, stream=True)
         response.raise_for_status()
 

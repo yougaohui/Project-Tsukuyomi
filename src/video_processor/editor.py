@@ -3,8 +3,17 @@
 """
 from pathlib import Path
 from typing import Optional, Tuple, List
-import moviepy.editor as mp
-from moviepy.video.fx import all as vfx
+
+# MoviePy 1.0.3 的导入方式
+from moviepy.video.io.VideoFileClip import VideoFileClip
+from moviepy.video.VideoClip import ImageClip, TextClip
+from moviepy.audio.io.AudioFileClip import AudioFileClip
+from moviepy.video.fx.all import crop, resize, fadein, fadeout
+from moviepy.audio.fx.all import volumex
+from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+from moviepy.audio.AudioClip import CompositeAudioClip
+from moviepy.video.compositing.concatenate import concatenate_videoclips
+from moviepy.editor import vfx
 
 from src.config.settings import (
     VIDEO_CROP_ENABLED,
