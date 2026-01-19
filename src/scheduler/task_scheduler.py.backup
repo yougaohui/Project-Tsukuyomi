@@ -33,7 +33,7 @@ class TaskScheduler:
     def __init__(self):
         self.scheduler = BlockingScheduler()
         self.prompt_manager = PromptManager()
-        self._video_generator = None  # 延迟初始化
+        self.video_generator = CogVideoClient()
         self.video_editor = VideoEditor()
         self.storage_manager = StorageManager()
 
@@ -43,14 +43,6 @@ class TaskScheduler:
         else:
             self.douyin_uploader = None
             logger.info("Running in test mode, skipping Douyin upload")
-
-    @property
-    def video_generator(self):
-        """延迟初始化视频生成器"""
-        if self._video_generator is None:
-            self._video_generator = CogVideoClient()
-        return self._video_generator
-
 
     def add_cron_job(
         self,

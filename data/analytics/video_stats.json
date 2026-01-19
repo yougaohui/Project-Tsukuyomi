@@ -1,0 +1,75 @@
+{
+  "test_001": {
+    "prompt": "Naruto using Rasengan",
+    "platform": "douyin",
+    "metrics": [
+      {
+        "views": 1000,
+        "likes": 50,
+        "comments": 10,
+        "timestamp": "2026-01-18T22:27:55.642931"
+      }
+    ],
+    "first_published": "2026-01-18T22:27:55.642942",
+    "last_updated": "2026-01-18T22:27:55.642943"
+  },
+  "test_002": {
+    "prompt": "Sasuke using Chidori",
+    "platform": "douyin",
+    "metrics": [
+      {
+        "views": 2000,
+        "likes": 100,
+        "comments": 20,
+        "timestamp": "2026-01-18T22:27:55.643151"
+      }
+    ],
+    "first_published": "2026-01-18T22:27:55.643155",
+    "last_updated": "2026-01-18T22:27:55.643156"
+  },
+  "demo_001": {
+    "prompt": "Naruto vs Pain, Six Paths of Pain, Rasenshuriken techniques, strategic battle, anime style",
+    "platform": "douyin",
+    "metrics": [
+      {
+        "views": 1000,
+        "likes": 50,
+        "comments": 10,
+        "shares": 5,
+        "timestamp": "2026-01-18T22:29:34.241778"
+      }
+    ],
+    "first_published": "2026-01-18T22:29:34.241788",
+    "last_updated": "2026-01-18T22:29:34.241790"
+  },
+  "demo_002": {
+    "prompt": "Final battle scene, good vs evil, emotional climax, dramatic effects, anime style",
+    "platform": "douyin",
+    "metrics": [
+      {
+        "views": 2000,
+        "likes": 100,
+        "comments": 20,
+        "shares": 10,
+        "timestamp": "2026-01-18T22:29:34.241972"
+      }
+    ],
+    "first_published": "2026-01-18T22:29:34.241974",
+    "last_updated": "2026-01-18T22:29:34.241975"
+  },
+  "demo_003": {
+    "prompt": "Naruto and Kurama in Perfect Tailed Beast Mode, giant fox form, energy projection, anime style",
+    "platform": "douyin",
+    "metrics": [
+      {
+        "views": 3000,
+        "likes": 150,
+        "comments": 30,
+        "shares": 15,
+        "timestamp": "2026-01-18T22:29:34.242089"
+      }
+    ],
+    "first_published": "2026-01-18T22:29:34.242091",
+    "last_updated": "2026-01-18T22:29:34.242092"
+  }
+}
