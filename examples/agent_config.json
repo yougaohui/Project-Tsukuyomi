@@ -1,0 +1,38 @@
+{
+  "publish_config": {
+    "strategy": "optimal",
+    "platforms": ["douyin", "kuaishou", "bilibili"],
+    "optimal_hours": [9, 12, 18, 20, 21],
+    "max_daily_publish": 5,
+    "min_interval": 3600,
+    "auto_retry": true,
+    "max_retries": 3,
+    "retry_interval": 600
+  },
+  "accounts": [
+    {
+      "platform": "douyin",
+      "account_id": "your_account_id",
+      "nickname": "抖音账号名称",
+      "cookie": "your_cookie_here",
+      "token": "",
+      "daily_limit": 10
+    },
+    {
+      "platform": "kuaishou",
+      "account_id": "your_account_id",
+      "nickname": "快手账号名称",
+      "cookie": "your_cookie_here",
+      "token": "",
+      "daily_limit": 10
+    },
+    {
+      "platform": "bilibili",
+      "account_id": "your_account_id",
+      "nickname": "B站账号名称",
+      "cookie": "your_cookie_here",
+      "token": "",
+      "daily_limit": 5
+    }
+  ]
+}
